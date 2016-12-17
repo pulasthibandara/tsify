@@ -16,6 +16,7 @@ var stringToStream = require('string-to-stream');
 var typescript = require('typescript');
 var vm = require('vm');
 var watchify = require('watchify');
+var vinylStream = require('vinyl-source-stream');
 
 var tsify = require('..');
 var Host = require('../lib/Host')(typescript);
@@ -573,6 +574,28 @@ test('with required stream', function (t) {
 		beforeBundle: function (b) {
 			b.exclude('streamed');
 			b.require(stringToStream('exports.name = "streamed";'), { expose: 'streamed', basedir: './' });
+		}
+	}, function (errors, actual) {
+		expectNoErrors(t, errors);
+		expectConsoleOutputFromScript(t, actual, [
+			'streamed'
+		]);
+		process.chdir('../..');
+		t.end();
+	});
+});
+
+test.only('with required vinyl-stream', function (t) {
+	process.chdir('./test/withRequiredStream');
+	run({
+		bOpts: { debug: false, entries: ['./x.ts'] },
+		tsifyOpts: {},
+		beforeBundle: function (b) {
+			var stream = stringToStream('exports.name = "streamed";')
+				.pipe( vinylStream() );
+
+			b.exclude('streamed');
+			b.require( stream, { expose: 'streamed', basedir: './' });
 		}
 	}, function (errors, actual) {
 		expectNoErrors(t, errors);
